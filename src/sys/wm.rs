@@ -3,6 +3,7 @@ use hyprland::data::{Clients, CursorPosition, Monitors};
 use hyprland::dispatch::{Dispatch, DispatchType, WindowIdentifier};
 use hyprland::error::HyprError;
 use hyprland::prelude::*;
+use hyprland::shared::Address;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -50,10 +51,10 @@ pub fn get_active_classes() -> Vec<WindowClass> {
         .unwrap_or_default()
 }
 
-pub fn focus_window(class: &WindowClass) -> Result<(), HyprError> {
-    Dispatch::call(DispatchType::FocusWindow(
-        WindowIdentifier::ClassRegularExpression(&class.0),
-    ))
+pub fn focus_window(address: &Address) -> Result<(), HyprError> {
+    Dispatch::call(DispatchType::FocusWindow(WindowIdentifier::Address(
+        address.clone(),
+    )))
 }
 
 pub fn close_window(class: &WindowClass) -> Result<(), HyprError> {
@@ -82,18 +83,39 @@ pub fn get_cursor_pos_on_active_monitor() -> Option<Point> {
 }
 
 pub fn run_or_raise(class: &WindowClass, exec: &ShellCommand) -> Result<(), RunOrRaiseError> {
-    if Clients::get()?
-        .iter()
-        .any(|c| c.class.eq_ignore_ascii_case(&class.0))
-    {
-        focus_window(class)?;
-    } else {
-        std::process::Command::new("sh")
-            .arg("-c")
-            .arg(&exec.0)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()?;
+    let target = class.0.to_ascii_lowercase();
+
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    enum MatchScore {
+        NoMatch,
+        Fuzzy,
+        Component,
+        Exact,
     }
-    Ok(())
+    Clients::get()?
+        .into_iter()
+        .map(|c| {
+            let w_class = c.class.to_ascii_lowercase();
+            let score = match w_class {
+                ref s if s == &target => MatchScore::Exact,
+                ref s if s.split('.').any(|p| p == target) => MatchScore::Component,
+                ref s if s.contains(&target) || target.contains(s) => MatchScore::Fuzzy,
+                _ => MatchScore::NoMatch,
+            };
+            (score, c)
+        })
+        .filter(|(score, _)| *score > MatchScore::NoMatch)
+        .max_by_key(|(score, _)| *score)
+        .map_or_else(
+            || {
+                std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&exec.0)
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn()?;
+                Ok(())
+            },
+            |(_, client)| focus_window(&client.address).map_err(RunOrRaiseError::from),
+        )
 }
