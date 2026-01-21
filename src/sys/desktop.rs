@@ -73,7 +73,7 @@ fn get_all_entries() -> Vec<AppInfo> {
     lock.read().clone()
 }
 
-pub fn get_desktop_directories() -> Vec<PathBuf> {
+fn get_desktop_directories() -> Vec<PathBuf> {
     let xdg = xdg::BaseDirectories::new();
     let mut dirs = Vec::new();
 
@@ -89,7 +89,7 @@ pub fn get_desktop_directories() -> Vec<PathBuf> {
     dirs
 }
 
-pub fn collect_desktop_files() -> Vec<PathBuf> {
+fn collect_desktop_files() -> Vec<PathBuf> {
     let mut entries = HashMap::new();
     let dirs = get_desktop_directories();
 
