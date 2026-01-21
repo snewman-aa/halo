@@ -22,7 +22,6 @@ pub enum AppMsg {
     Show,
     Hide,
     CursorMove(Point),
-    RefreshCss,
     ConfigReload,
 }
 
@@ -32,7 +31,6 @@ impl From<AppEvent> for AppMsg {
             AppEvent::Show => AppMsg::Show,
             AppEvent::Hide => AppMsg::Hide,
             AppEvent::CursorMove(p) => AppMsg::CursorMove(p),
-            AppEvent::RefreshCss => AppMsg::RefreshCss,
             AppEvent::ConfigReload => AppMsg::ConfigReload,
         }
     }
@@ -193,10 +191,6 @@ impl SimpleComponent for AppModel {
                 if action.should_redraw {
                     self.drawing_area.queue_draw();
                 }
-            }
-            AppMsg::RefreshCss => {
-                ui::load_css();
-                self.drawing_area.queue_draw();
             }
             AppMsg::ConfigReload => match config::load_config() {
                 Ok(new_config) => {

@@ -92,7 +92,12 @@ pub fn init_layer_shell(window: &gtk::ApplicationWindow) {
 
 pub fn load_css() {
     let provider = gtk::CssProvider::new();
-    let css_data = include_str!("style.css");
+    let css_data = "
+.halo-window, .halo-drawing-area {
+    background: none;
+    background-color: transparent;
+}
+";
     provider.load_from_data(css_data);
 
     if let Some(display) = gdk::Display::default() {

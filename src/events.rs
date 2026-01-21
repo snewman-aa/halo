@@ -5,6 +5,5 @@ pub enum AppEvent {
     Show,
     Hide,
     CursorMove(Point),
-    RefreshCss,
     ConfigReload,
 }
