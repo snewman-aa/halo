@@ -21,6 +21,7 @@ pub struct AppModel {
 pub enum AppMsg {
     Show,
     Hide,
+    Click(u32),
     CursorMove(Point),
     ConfigReload,
 }
@@ -30,6 +31,7 @@ impl From<AppEvent> for AppMsg {
         match event {
             AppEvent::Show => AppMsg::Show,
             AppEvent::Hide => AppMsg::Hide,
+            AppEvent::Click(b) => AppMsg::Click(b),
             AppEvent::CursorMove(p) => AppMsg::CursorMove(p),
             AppEvent::ConfigReload => AppMsg::ConfigReload,
         }
@@ -84,8 +86,8 @@ impl SimpleComponent for AppModel {
 
                     add_controller = gtk::GestureClick {
                         set_button: 0, // Listen to all buttons
-                        connect_released[sender] => move |_, _, _, _| {
-                            sender.input(AppMsg::Hide);
+                        connect_released[sender] => move |gesture, _, _, _| {
+                            sender.input(AppMsg::Click(gesture.current_button()));
                         }
                     }
                 }
@@ -166,6 +168,26 @@ impl SimpleComponent for AppModel {
                 self.drawing_area.queue_draw();
             }
             AppMsg::Hide => {
+                self.visible = false;
+            }
+            AppMsg::Click(btn) => {
+                if !self.visible {
+                    return;
+                }
+                if btn == 3 {
+                    let state = self.state.borrow();
+
+                    let _ = state
+                        .hover_index
+                        .and_then(|i| state.slots.get(i))
+                        .filter(|s| s.is_running(&state.active_classes))
+                        .and_then(|s| s.app.as_ref())
+                        .map(|app| {
+                            if let Err(e) = wm::close_window(&app.class) {
+                                log::error!("Failed to close window: {}", e);
+                            }
+                        });
+                }
                 self.visible = false;
             }
             AppMsg::CursorMove(point) => {

@@ -56,6 +56,12 @@ pub fn focus_window(class: &WindowClass) -> Result<(), HyprError> {
     ))
 }
 
+pub fn close_window(class: &WindowClass) -> Result<(), HyprError> {
+    Dispatch::call(DispatchType::CloseWindow(
+        WindowIdentifier::ClassRegularExpression(&class.0),
+    ))
+}
+
 pub fn get_active_monitor() -> Option<MonitorName> {
     Monitors::get()
         .ok()?

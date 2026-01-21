@@ -123,7 +123,7 @@ app = "vesktop" # discord
 
 ## TODOs
 
-- [ ] **Close via Right-Click:** Allow right-clicking an icon of an open application to close it (via Hyprland `killactive`)
+- [x] **Close via Right-Click:** Allow right-clicking an icon of an open application to close it (via Hyprland `closewindow`)
 - [ ] **Live Application Updates:** File watcher for desktop entry directories to automatically refresh the app cache when new software is installed
 - [ ] **Active Apps List:** List all currently running apps (with desktop entries) that aren't assigned to a radial slot (potentially with assigned keybinds)
 - [ ] **Eye Candy:** Add animations for menu transitions and icon selection (low priority)
