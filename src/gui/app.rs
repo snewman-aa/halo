@@ -1,7 +1,8 @@
 use crate::config;
 use crate::events::AppEvent;
 use crate::gui::menu::{self, State};
-use crate::gui::ui::{self, ThemeColors};
+use crate::gui::theme::{self, ThemeColors};
+use crate::gui::window;
 use crate::sys::wm::{self, Point, ShellCommand};
 use gtk::prelude::*;
 use gtk4 as gtk;
@@ -102,8 +103,8 @@ impl SimpleComponent for AppModel {
     ) -> ComponentParts<Self> {
         let (state, config_tx, rx) = init;
 
-        ui::load_css();
-        ui::init_layer_shell(&root);
+        theme::load_css();
+        window::init_layer_shell(&root);
 
         let state = Rc::new(RefCell::new(state));
 
@@ -149,15 +150,15 @@ impl SimpleComponent for AppModel {
                 let monitor_name = wm::get_active_monitor();
                 let mut monitor_height = 1440.0;
                 if let Some(name) = &monitor_name {
-                    ui::set_window_monitor(&self.root, name);
-                    if let Some(m) = ui::get_monitor_by_name(name) {
+                    window::set_window_monitor(&self.root, name);
+                    if let Some(m) = window::get_monitor_by_name(name) {
                         monitor_height = m.geometry().height() as f64;
                     }
                 }
 
                 self.visible = true;
 
-                let cursor_pos = ui::get_cursor_position(&self.root)
+                let cursor_pos = window::get_cursor_position(&self.root)
                     .or_else(wm::get_cursor_pos_on_active_monitor)
                     .unwrap_or_default();
 
