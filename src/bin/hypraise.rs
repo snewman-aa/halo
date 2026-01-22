@@ -7,15 +7,15 @@ use std::os::unix::net::UnixStream;
 const SOCKET_PATH: &str = "/tmp/halo.sock";
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(name = "hypraise", version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
     /// The application name or window class (used to find desktop entry)
-    query: Option<String>,
+    name: Option<String>,
 
-    /// Explicitly specify the window class to match (overrides desktop entry and query)
+    /// Explicitly specify the window class to match (overrides desktop entry and name)
     #[arg(short = 'c', long)]
     class: Option<String>,
 
@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Show) => send_command("show"),
         Some(Commands::Hide) => send_command("hide"),
         None => {
-            if let Some(query) = cli.query {
+            if let Some(query) = cli.name {
                 run_or_raise(query, cli.class, cli.exec)
             } else {
                 use clap::CommandFactory;
