@@ -1,3 +1,4 @@
 pub mod app;
 pub mod menu;
-pub mod ui;
+pub mod theme;
+pub mod window;

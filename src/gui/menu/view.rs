@@ -1,6 +1,6 @@
 use super::model::{Slot, SlotGeometry, State};
 use super::{CENTER_CIRCLE_RADIUS, ICON_INACTIVE_ALPHA, ICON_SIZE};
-use crate::gui::ui::ThemeColors;
+use crate::gui::theme::ThemeColors;
 use crate::sys::wm::WindowClass;
 use cairo::Context;
 use gdk_pixbuf::Pixbuf;
