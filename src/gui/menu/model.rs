@@ -1,18 +1,76 @@
 use crate::config::{Config, SlotConfig};
-use crate::gui::geometry::SlotGeometry;
-use crate::gui::ui::ThemeColors;
-use crate::gui::{
-    CENTER_CIRCLE_RADIUS, ICON_INACTIVE_ALPHA, ICON_SIZE, INNER_RADIUS, OUTER_RADIUS,
-    REFERENCE_HEIGHT, SLOT_COUNT,
+use crate::gui::menu::{
+    ANGLE_STEP, ICON_SIZE, INNER_RADIUS, MENU_RADIUS, OUTER_RADIUS, REFERENCE_HEIGHT, SLOT_COUNT,
+    SLOT_RADIUS, START_OFFSET,
 };
 use crate::sys::desktop::AppInfo;
 use crate::sys::wm::{Point, WindowClass};
-use cairo::Context;
 use gdk_pixbuf::Pixbuf;
-use gdk4::prelude::*;
-use palette::Srgba;
 use std::f64::consts::PI;
-use std::iter::zip;
+
+#[derive(Debug, Clone)]
+pub struct SlotGeometry {
+    pub center: Point,
+    pub radius: f64,
+    pub scale: f64,
+}
+
+impl SlotGeometry {
+    pub fn angle(index: usize) -> f64 {
+        START_OFFSET + (index as f64 * ANGLE_STEP)
+    }
+
+    pub fn angle_difference(a: f64, b: f64) -> f64 {
+        // Normalize the difference to [-PI, PI] to find the shortest path around the circle
+        ((a - b + PI).rem_euclid(2.0 * PI) - PI).abs()
+    }
+
+    /// Squishes slots when many are filled. It looks at the previous and next filled slots to
+    /// determine available angular space (`width`).
+    pub fn calculate(
+        index: usize,
+        filled_indices: &[usize],
+        center: Point,
+        scale_factor: f64,
+    ) -> Self {
+        let current_pos = filled_indices.iter().position(|&x| x == index).unwrap();
+        let prev_idx =
+            filled_indices[(current_pos + filled_indices.len() - 1) % filled_indices.len()];
+        let next_idx = filled_indices[(current_pos + 1) % filled_indices.len()];
+
+        // if this is the only slot, it gets the full circle (2 PI)
+        let d_l = if prev_idx == index {
+            2.0 * PI
+        } else {
+            // distance counter-clockwise
+            ((index + SLOT_COUNT - prev_idx) % SLOT_COUNT) as f64 * ANGLE_STEP
+        };
+        let d_r = if next_idx == index {
+            2.0 * PI
+        } else {
+            // distance clockwise
+            ((next_idx + SLOT_COUNT - index) % SLOT_COUNT) as f64 * ANGLE_STEP
+        };
+
+        // average available space to scale the icon size
+        // basically, room to breathe relative to slot density
+        let width = (d_l + d_r) / 2.0;
+        let scale = (width / ANGLE_STEP).sqrt().min(2.5);
+        let current_slot_radius = SLOT_RADIUS * scale * scale_factor;
+
+        let angle = Self::angle(index);
+        let (x, y) = (
+            center.x + (MENU_RADIUS * scale_factor) * angle.cos(),
+            center.y + (MENU_RADIUS * scale_factor) * angle.sin(),
+        );
+
+        Self {
+            center: Point::new(x, y),
+            radius: current_slot_radius,
+            scale,
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Slot {
@@ -107,6 +165,7 @@ impl State {
     pub fn update_cursor(&mut self, cursor: Point) -> CursorAction {
         let dist = self.distance_from_center(cursor);
 
+        // dead zone
         if dist <= INNER_RADIUS * self.scale_factor {
             return self.clear_hover();
         }
@@ -203,166 +262,4 @@ impl CursorAction {
             should_activate,
         }
     }
-}
-
-struct SlotRenderer<'a> {
-    slot: &'a Slot,
-    geometry: &'a SlotGeometry,
-    hovered: bool,
-    active_classes: &'a [WindowClass],
-}
-
-impl<'a> SlotRenderer<'a> {
-    fn new(
-        slot: &'a Slot,
-        geometry: &'a SlotGeometry,
-        hovered: bool,
-        active_classes: &'a [WindowClass],
-    ) -> Self {
-        Self {
-            slot,
-            geometry,
-            hovered,
-            active_classes,
-        }
-    }
-
-    fn draw(&self, cr: &Context, colors: &ThemeColors) -> Result<(), cairo::Error> {
-        self.draw_circle(cr, colors)?;
-        self.draw_content(cr)?;
-        Ok(())
-    }
-
-    fn draw_circle(&self, cr: &Context, colors: &ThemeColors) -> Result<(), cairo::Error> {
-        let state = SlotState::resolve(self.slot, self.hovered, self.active_classes);
-        let color = state.color(colors);
-        let (r, g, b, a) = color.into_components();
-        cr.set_source_rgba(r, g, b, a);
-        cr.arc(
-            self.geometry.center.x,
-            self.geometry.center.y,
-            self.geometry.radius,
-            0.0,
-            2.0 * PI,
-        );
-        cr.fill()
-    }
-
-    fn draw_content(&self, cr: &Context) -> Result<(), cairo::Error> {
-        if let Some(pixbuf) = &self.slot.pixbuf {
-            self.draw_icon(cr, pixbuf)
-        } else if let Some(app) = &self.slot.app {
-            self.draw_text(cr, &app.name)
-        } else {
-            Ok(())
-        }
-    }
-
-    fn draw_icon(&self, cr: &Context, pixbuf: &Pixbuf) -> Result<(), cairo::Error> {
-        let icon_scale = (self.geometry.radius * 2.0 * 0.75) / ICON_SIZE as f64;
-        let (iw, ih) = (
-            pixbuf.width() as f64 * icon_scale,
-            pixbuf.height() as f64 * icon_scale,
-        );
-        let (ix, iy) = (
-            self.geometry.center.x - iw / 2.0,
-            self.geometry.center.y - ih / 2.0,
-        );
-
-        cr.save()?;
-        cr.translate(ix, iy);
-        cr.scale(icon_scale, icon_scale);
-
-        let running = self.slot.is_running(self.active_classes);
-        if !running && !self.hovered {
-            cr.push_group();
-            cr.set_source_pixbuf(pixbuf, 0.0, 0.0);
-            cr.paint()?;
-            cr.pop_group_to_source()?;
-            cr.paint_with_alpha(ICON_INACTIVE_ALPHA)?;
-        } else {
-            cr.set_source_pixbuf(pixbuf, 0.0, 0.0);
-            cr.paint()?;
-        }
-        cr.restore()
-    }
-
-    fn draw_text(&self, cr: &Context, text: &str) -> Result<(), cairo::Error> {
-        cr.set_source_rgb(1.0, 1.0, 1.0);
-        cr.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Bold);
-        cr.set_font_size(12.0 * self.geometry.scale);
-        if let Ok(ext) = cr.text_extents(text) {
-            cr.move_to(
-                self.geometry.center.x - ext.width() / 2.0,
-                self.geometry.center.y + ext.height() / 2.0,
-            );
-            cr.show_text(text)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SlotState {
-    Broken,
-    Hovered,
-    Running,
-    Idle,
-}
-
-impl SlotState {
-    fn resolve(slot: &Slot, hovered: bool, active_classes: &[WindowClass]) -> Self {
-        if slot.is_broken() {
-            Self::Broken
-        } else if hovered {
-            Self::Hovered
-        } else if slot.is_running(active_classes) {
-            Self::Running
-        } else {
-            Self::Idle
-        }
-    }
-
-    fn color(&self, colors: &ThemeColors) -> Srgba<f64> {
-        match self {
-            Self::Broken => colors.broken,
-            Self::Hovered => colors.hovered,
-            Self::Running => colors.running,
-            Self::Idle => colors.default,
-        }
-    }
-}
-
-pub fn draw(cr: &Context, state: &State, colors: &ThemeColors) -> Result<(), cairo::Error> {
-    draw_center_circle(cr, state, colors)?;
-
-    for (i, (slot, geometry)) in zip(&state.slots, &state.slot_geometries).enumerate() {
-        if let Some(geometry) = geometry {
-            SlotRenderer::new(
-                slot,
-                geometry,
-                state.hover_index == Some(i),
-                &state.active_classes,
-            )
-            .draw(cr, colors)?;
-        }
-    }
-    Ok(())
-}
-
-fn draw_center_circle(
-    cr: &Context,
-    state: &State,
-    colors: &ThemeColors,
-) -> Result<(), cairo::Error> {
-    let (r, g, b, a) = colors.center_circle.into_components();
-    cr.set_source_rgba(r, g, b, a);
-    cr.arc(
-        state.center.x,
-        state.center.y,
-        CENTER_CIRCLE_RADIUS * state.scale_factor,
-        0.0,
-        2.0 * PI,
-    );
-    cr.fill()
 }
