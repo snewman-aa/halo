@@ -1,10 +1,10 @@
 use super::model::{Slot, SlotGeometry, State};
 use super::{CENTER_CIRCLE_RADIUS, ICON_INACTIVE_ALPHA, ICON_SIZE};
 use crate::gui::theme::ThemeColors;
-use crate::sys::wm::WindowClass;
 use cairo::Context;
 use gdk_pixbuf::Pixbuf;
 use gdk4::prelude::*;
+use hypraise::wm::WindowClass;
 use palette::Srgba;
 use std::f64::consts::PI;
 use std::iter::zip;

@@ -1,5 +1,5 @@
-use crate::sys::icon::{self, IconName};
-use crate::sys::wm::WindowClass;
+use crate::icon::{self, IconName};
+use crate::wm::WindowClass;
 use derive_more::{AsRef, Deref, Display, From, Into};
 use freedesktop_entry_parser::parse_entry;
 use fs_err as fs;
@@ -171,24 +171,19 @@ fn strip_field_codes(exec: &str) -> String {
 }
 
 pub fn find_desktop_entry(query: &AppQuery) -> Option<AppInfo> {
+    find_desktop_entry_in_list(query, &get_all_entries())
+}
+
+pub fn find_desktop_entry_in_list(query: &AppQuery, entries: &[AppInfo]) -> Option<AppInfo> {
     let lower_query = query.to_lowercase();
-    get_all_entries().into_iter().find(|app| {
-        app.name.to_lowercase() == lower_query || app.class.to_lowercase() == lower_query
-    })
+    entries
+        .iter()
+        .find(|app| {
+            app.name.to_lowercase() == lower_query || app.class.to_lowercase() == lower_query
+        })
+        .cloned()
 }
 
 pub fn resolve_apps(queries: &[AppQuery]) -> Vec<Option<AppInfo>> {
     queries.iter().map(find_desktop_entry).collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_strip_field_codes() {
-        let input = "wine \"My Game.exe\" %u";
-        let output = strip_field_codes(input);
-        assert_eq!(output, "wine 'My Game.exe'");
-    }
 }

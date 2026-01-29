@@ -1151,20 +1151,17 @@ dependencies = [
  "anyhow",
  "async-channel",
  "cairo-rs",
- "clap",
  "config",
  "derive_more",
  "directories",
  "env_logger",
- "freedesktop-icons",
- "freedesktop_entry_parser",
  "fs-err",
  "gdk-pixbuf",
  "gdk4",
  "glib",
  "gtk4",
  "gtk4-layer-shell",
- "hyprland",
+ "hypraise",
  "log",
  "notify",
  "palette",
@@ -1173,7 +1170,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "shell-words",
  "strum",
  "thiserror 2.0.17",
  "tokio",
@@ -1227,6 +1223,27 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hypraise"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "derive_more",
+ "directories",
+ "env_logger",
+ "freedesktop-icons",
+ "freedesktop_entry_parser",
+ "fs-err",
+ "hyprland",
+ "log",
+ "parking_lot",
+ "serde",
+ "shell-words",
+ "thiserror 2.0.17",
+ "xdg 3.0.0",
+]
 
 [[package]]
 name = "hyprland"

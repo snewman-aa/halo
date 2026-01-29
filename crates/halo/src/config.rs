@@ -1,6 +1,6 @@
-use crate::sys::desktop::{AppQuery, ExecCommand};
-use crate::sys::wm::WindowClass;
 use directories::ProjectDirs;
+use hypraise::desktop::{AppQuery, ExecCommand};
+use hypraise::wm::WindowClass;
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use serde_with::DeserializeFromStr;

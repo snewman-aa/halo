@@ -2,7 +2,7 @@ use halo::config;
 use halo::gui::app::AppModel;
 use halo::gui::menu::State;
 use halo::sys::runtime;
-use halo::sys::wm::Point;
+use hypraise::wm::Point;
 use relm4::prelude::*;
 
 fn main() {

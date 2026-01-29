@@ -1,8 +1,8 @@
-use crate::sys::wm::{MonitorName, Point};
 use gtk::gdk;
 use gtk::prelude::*;
 use gtk4 as gtk;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use hypraise::wm::{MonitorName, Point};
 
 pub fn get_cursor_position(window: &gtk::ApplicationWindow) -> Option<Point> {
     gdk::Display::default()

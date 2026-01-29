@@ -3,9 +3,9 @@ use crate::gui::menu::{
     ANGLE_STEP, ICON_SIZE, INNER_RADIUS, MENU_RADIUS, OUTER_RADIUS, REFERENCE_HEIGHT, SLOT_COUNT,
     SLOT_RADIUS, START_OFFSET,
 };
-use crate::sys::desktop::AppInfo;
-use crate::sys::wm::{Point, WindowClass};
 use gdk_pixbuf::Pixbuf;
+use hypraise::desktop::AppInfo;
+use hypraise::wm::{Point, WindowClass};
 use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]

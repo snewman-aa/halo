@@ -1,4 +1,4 @@
-use crate::sys::wm::Point;
+use hypraise::wm::Point;
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {

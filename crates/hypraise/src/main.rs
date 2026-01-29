@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
-use halo::sys::desktop::{AppInfo, AppQuery, ExecCommand};
-use halo::sys::wm::{self, ShellCommand, WindowClass};
+use hypraise::desktop::{AppInfo, AppQuery, ExecCommand};
+use hypraise::wm::{self, ShellCommand, WindowClass};
 use std::io::Write;
 use std::os::unix::net::UnixStream;
 
