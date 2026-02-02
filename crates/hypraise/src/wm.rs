@@ -1,5 +1,5 @@
 use derive_more::{AsRef, Deref, Display, From, Into};
-use hyprland::data::{Clients, CursorPosition, Monitors};
+use hyprland::data::{Client, Clients, CursorPosition, Monitors};
 use hyprland::dispatch::{Dispatch, DispatchType, WindowIdentifier};
 use hyprland::error::HyprError;
 use hyprland::prelude::*;
@@ -33,6 +33,11 @@ pub struct MonitorName(String);
 crate::impl_string_newtype!(MonitorName);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Deref, From, Into, AsRef)]
+pub struct ClientTitle(String);
+
+crate::impl_string_newtype!(ClientTitle);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Deref, From, Into, AsRef)]
+
 pub struct ShellCommand(String);
 
 crate::impl_string_newtype!(ShellCommand);
@@ -43,6 +48,30 @@ pub enum RunOrRaiseError {
     Hypr(#[from] HyprError),
     #[error(transparent)]
     Io(#[from] std::io::Error),
+}
+
+#[derive(Debug, Clone)]
+pub struct ActiveClient {
+    pub address: Address,
+    pub class: WindowClass,
+    pub title: ClientTitle,
+    pub workspace_id: i32,
+}
+
+pub fn get_active_clients() -> Vec<ActiveClient> {
+    Clients::get()
+        .map(|clients| {
+            clients
+                .into_iter()
+                .map(|c| ActiveClient {
+                    address: c.address,
+                    class: WindowClass(c.class),
+                    title: ClientTitle(c.title),
+                    workspace_id: c.workspace.id,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub fn get_active_classes() -> Vec<WindowClass> {

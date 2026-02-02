@@ -1,11 +1,12 @@
 use crate::config::{Config, SlotConfig};
 use crate::gui::menu::{
     ANGLE_STEP, ICON_SIZE, INNER_RADIUS, MENU_RADIUS, OUTER_RADIUS, REFERENCE_HEIGHT, SLOT_COUNT,
-    SLOT_RADIUS, START_OFFSET,
+    SLOT_RADIUS, START_OFFSET, SUB_KEYS, SUBSLOT_RING_RADIUS_FACTOR, SUBSLOT_SCALE_FACTOR,
+    SUBSLOT_SIZE_FACTOR,
 };
 use gdk_pixbuf::Pixbuf;
-use hypraise::desktop::AppInfo;
-use hypraise::wm::{Point, WindowClass};
+use hypraise::desktop::{self, AppInfo, AppQuery};
+use hypraise::wm::{ActiveClient, Point, WindowClass, get_active_clients};
 use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]
@@ -70,6 +71,22 @@ impl SlotGeometry {
             scale,
         }
     }
+
+    pub fn calculate_ring(index: usize, total: usize, center: Point, scale_factor: f64) -> Self {
+        let angle = -PI / 2.0 + (index as f64 / total as f64) * 2.0 * PI;
+        let radius = OUTER_RADIUS * SUBSLOT_RING_RADIUS_FACTOR * scale_factor;
+
+        let (x, y) = (
+            center.x + radius * angle.cos(),
+            center.y + radius * angle.sin(),
+        );
+
+        Self {
+            center: Point::new(x, y),
+            radius: SLOT_RADIUS * SUBSLOT_SIZE_FACTOR * scale_factor,
+            scale: SUBSLOT_SCALE_FACTOR,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -120,9 +137,18 @@ impl Slot {
     }
 }
 
+#[derive(Clone)]
+pub struct SubSlot {
+    pub client: ActiveClient,
+    pub key: char,
+    pub geometry: SlotGeometry,
+    pub pixbuf: Option<Pixbuf>,
+}
+
 pub struct State {
     pub center: Point,
     pub slots: Vec<Slot>,
+    pub subslots: Vec<SubSlot>,
     pub hover_index: Option<usize>,
     pub active_classes: Vec<WindowClass>,
     pub scale_factor: f64,
@@ -139,6 +165,7 @@ impl State {
         let mut state = Self {
             center,
             slots,
+            subslots: Vec::new(),
             hover_index: None,
             active_classes,
             scale_factor,
@@ -222,6 +249,39 @@ impl State {
         self.center = center;
         self.hover_index = None;
         self.scale_factor = monitor_height / REFERENCE_HEIGHT;
+
+        // subslots
+        self.subslots.clear();
+        let sub_clients = get_active_clients().into_iter().filter(|c| {
+            let slot_classes = self
+                .slots
+                .iter()
+                .filter_map(|s| s.app.as_ref())
+                .map(|app| app.class.to_lowercase())
+                .collect::<Vec<_>>();
+            !slot_classes.contains(&c.class.to_lowercase())
+        });
+
+        for (sc, shortcut) in sub_clients.zip(SUB_KEYS) {
+            let query = AppQuery::new(sc.class.to_string());
+            let app_info = desktop::find_desktop_entry(&query);
+            let pixbuf = app_info.as_ref().and_then(Slot::load_icon);
+
+            // placeholder geometry
+            let geometry = SlotGeometry {
+                center,
+                radius: 0.0,
+                scale: 0.0,
+            };
+
+            self.subslots.push(SubSlot {
+                client: sc,
+                key: *shortcut,
+                geometry,
+                pixbuf,
+            });
+        }
+
         self.recalculate_geometries();
     }
 
@@ -246,6 +306,12 @@ impl State {
                 })
             })
             .collect();
+
+        let subslot_count = self.subslots.len();
+        for (i, subslot) in self.subslots.iter_mut().enumerate() {
+            subslot.geometry =
+                SlotGeometry::calculate_ring(i, subslot_count, self.center, self.scale_factor);
+        }
     }
 }
 
