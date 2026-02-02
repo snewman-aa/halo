@@ -1,5 +1,5 @@
 use derive_more::{AsRef, Deref, Display, From, Into};
-use hyprland::data::{Client, Clients, CursorPosition, Monitors};
+use hyprland::data::{Clients, CursorPosition, Monitors};
 use hyprland::dispatch::{Dispatch, DispatchType, WindowIdentifier};
 use hyprland::error::HyprError;
 use hyprland::prelude::*;
