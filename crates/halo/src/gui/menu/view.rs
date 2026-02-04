@@ -178,55 +178,30 @@ impl<'a> SubSlotRenderer<'a> {
     fn draw_badge(&self, cr: &Context) -> Result<(), cairo::Error> {
         let text = self.subslot.key.to_string().to_uppercase();
         let center = self.subslot.geometry.center;
-        let scale = self.subslot.geometry.scale * 3.0;
 
         cr.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Bold);
-        cr.set_font_size(12.0 * scale);
+        // size proportional to the slot radius
+        let font_size = self.subslot.geometry.radius * 1.8;
+        cr.set_font_size(font_size);
 
         if let Ok(ext) = cr.text_extents(&text) {
-            let padding = 4.0 * scale;
-            let width = ext.width() + padding * 2.0;
-            let height = ext.height() + padding * 2.0;
+            // center text in slot
+            let x = center.x - ext.width() / 2.0 - ext.x_bearing();
+            let y = center.y - ext.height() / 2.0 - ext.y_bearing();
 
-            // position badge at the bottom center of the slot
-            let bx = center.x - width / 2.0;
-            let by = center.y + self.subslot.geometry.radius - height;
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.6);
 
-            // "Keycap" background
-            cr.set_source_rgba(0.0, 0.0, 0.0, 0.6);
-            draw_rounded_rect(cr, bx, by, width, height, 4.0 * scale)?;
-            cr.fill()?;
+            // shadow
+            cr.move_to(x + 1.0, y + 1.0);
+            cr.set_source_rgba(0.0, 0.0, 0.0, 0.5);
+            cr.show_text(&text)?;
 
-            // text
-            cr.set_source_rgb(1.0, 1.0, 1.0);
-            cr.move_to(bx + padding, by + height - padding);
+            cr.move_to(x, y);
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.6);
             cr.show_text(&text)?;
         }
         Ok(())
     }
-}
-
-fn draw_rounded_rect(
-    cr: &Context,
-    x: f64,
-    y: f64,
-    width: f64,
-    height: f64,
-    radius: f64,
-) -> Result<(), cairo::Error> {
-    cr.new_sub_path();
-    cr.arc(x + radius, y + radius, radius, PI, 1.5 * PI);
-    cr.arc(x + width - radius, y + radius, radius, 1.5 * PI, 2.0 * PI);
-    cr.arc(
-        x + width - radius,
-        y + height - radius,
-        radius,
-        0.0,
-        0.5 * PI,
-    );
-    cr.arc(x + radius, y + height - radius, radius, 0.5 * PI, PI);
-    cr.close_path();
-    Ok(())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -302,4 +277,3 @@ fn draw_center_circle(
     );
     cr.fill()
 }
-
