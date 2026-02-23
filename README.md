@@ -143,10 +143,3 @@ app = "vesktop" # discord
 
 > [!NOTE]
 > If both `class` and `exec` are provided, they will override the desktop entry.
-
-## TODOs
-
-- [ ] **Live Application Updates:** File watcher for desktop entry directories to automatically refresh the app cache when new software is installed
-- [ ] **Move Windows:** Move hovered app's window to workspace with keybind
-- [ ] **Active Apps List:** List all currently running apps (with desktop entries) that aren't assigned to a slot (potentially with assigned keybinds)
-- [ ] **Eye Candy:** Add animations for menu transitions and icon selection (low priority)
